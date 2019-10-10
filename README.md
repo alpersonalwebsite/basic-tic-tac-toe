@@ -1,68 +1,234 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Basic Tic-Tac-Toe
 
-## Available Scripts
+[![Greenkeeper badge](https://badges.greenkeeper.io/alpersonalwebsite/basic-tic-tac-toe.svg)](https://greenkeeper.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
-In the project directory, you can run:
+TODO: Overview
 
-### `npm start`
+**NOTE:** This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
 
-### `npm test`
+Immutability
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Shallow copy
 
-### `npm run build`
+```javascript
+const state = {
+  isGame: false,
+  players: {
+    order: ['player1', 'player2'],
+    player1: 1,
+    player2: 2
+  },
+  currentPlayer: '',
+  isWinner: false
+};
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+console.log(`Original state: ${state.players.player1} `)
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+const newState1 = {...state};
+newState1.players.player1 = 11;
+// At this point state.players.player1 = 11
 
-### `npm run eject`
+const newState2 = Object.assign({}, state);
+newState1.players.player1 = 111;
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+console.log(`state is ${state.players.player1} 
+newState1 is ${newState1.players.player1}
+newState2 is ${newState2.players.player1}`)
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Result:
+```
+Original state: 1 
+state is 111 
+newState1 is 111
+newState2 is 111
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+TODO: Performance deep
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+Deep copy (or clone) with lodash
 
-## Learn More
+```javascript
+const state = {
+  isGame: false,
+  players: {
+    order: ['player1', 'player2'],
+    player1: 1,
+    player2: 2
+  },
+  currentPlayer: '',
+  isWinner: false
+};
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+console.log(`Original state: ${state.players.player1} `)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+const deepCloneOfState = _.cloneDeep(state);
+deepCloneOfState.players.player1 = 111111;
 
-### Code Splitting
+console.log(`state: ${state.players.player1} 
+deepCloneOfState: ${deepCloneOfState.players.player1}`)
+```
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+Result:
+```
+Original state: 1 
+state: 1 
+deepCloneOfState: 111111
+```
 
-### Analyzing the Bundle Size
+DOING:
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+Example of adding a hobby to the hobbies's array of player1
 
-### Making a Progressive Web App
+Having the following object (state)...
+```javascript
+const state = {
+  players: {
+    player1: {
+      name: 'Cindy',
+      hobbies: ['3D printing', 'Reading', 'Gaming'],
+      age: 30
+    },
+    player2: {
+      name: 'Paul',
+      hobbies: ['Painting', 'Gaming', 'Coloring'],
+      age: 99
+    },
+  }
+}
+```
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+**Attempt #1...**
 
-### Advanced Configuration
+If we try...
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+```javascript
+const newState1 = {
+  ...state
+}
 
-### Deployment
+console.log('Original', state.players.player1.hobbies)
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
+newState1.players.player1.hobbies.push('new hobbie')
 
-### `npm run build` fails to minify
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+console.log('Original state', state.players.player1.hobbies)
+console.log('newState1', newState1.players.player1.hobbies)
+```
+
+Result:
+```
+Original (3) ["3D printing", "Reading", "Gaming"]
+
+Original state (4) ["3D printing", "Reading", "Gaming", "new hobbie"]
+newState1 (4) ["3D printing", "Reading", "Gaming", "new hobbie"]
+```
+
+We are mutating the original object. So... Let's go deeper.
+
+**Attempt #2**
+
+If we try...
+
+```javascript
+const newState1 = {
+  ...state,
+  players: {
+    ...state.players,
+    player1: {
+      ...state.players.player1
+    }
+  }
+}
+
+console.log('Original', state.players.player1.hobbies)
+
+newState1.players.player1.hobbies.push('new hobbie')
+
+
+console.log('Original state', state.players.player1.hobbies)
+console.log('newState1', newState1.players.player1.hobbies)
+```
+
+Result:
+```
+Original (3) ["3D printing", "Reading", "Gaming"]
+Original state (4) ["3D printing", "Reading", "Gaming", "new hobbie"]
+newState1 (4) ["3D printing", "Reading", "Gaming", "new hobbie"]
+```
+
+Yes... We should expect to see the same, but... We can make changes for the key `player1` without altering the original source. Well, for the properties or keys holding `primitives values`; 
+
+Example: 
+
+```javascript
+const newState1 = {
+  ...state,
+  players: {
+    ...state.players,
+    player1: {
+      ...state.players.player1
+    }
+  }
+}
+
+console.log('Original state', state.players.player1.name, state.players.player2.name)
+
+// This does NOT mutate
+newState1.players.player1.name = 'Player 1';
+
+// This will mutate state
+newState1.players.player2.name = 'Player 2';
+
+
+console.log('newState1 > player1', newState1.players.player1.name)
+console.log('newState1 > player2', newState1.players.player2.name)
+
+console.log('state', state.players.player1.name, state.players.player2.name)
+```
+
+Result:
+```
+state Cindy Paul
+newState1 > player1 Player 1
+newState1 > player2 Player 2
+state Cindy Player 2
+```
+
+**Attempt #3**
+
+If we try...
+
+```javascript
+const newState1 = {
+  ...state,
+  players: {
+    ...state.players,
+    player1: {
+      ...state.players.player1,
+      hobbies: [...state.players.player1.hobbies]
+    }
+  }
+}
+
+console.log('Original', state.players.player1.hobbies)
+
+newState1.players.player1.hobbies.push('new hobbie')
+
+
+console.log('Original state', state.players.player1.hobbies)
+console.log('newState1', newState1.players.player1.hobbies)
+```
+
+Result:
+```
+Original (3) ["3D printing", "Reading", "Gaming"]
+Original state (3) ["3D printing", "Reading", "Gaming"]
+newState1 (4) ["3D printing", "Reading", "Gaming", "new hobbie"]
+```
+
+Great!
