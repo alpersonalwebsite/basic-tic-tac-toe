@@ -1,17 +1,86 @@
 # Basic Tic-Tac-Toe
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/alpersonalwebsite/basic-tic-tac-toe.svg)](https://greenkeeper.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
-TODO: Overview
+A playable tic-tac-toe board, written so that every state update is an immutable one,
+with notes underneath on why the updates are written that way.
 
-**NOTE:** This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**NOTE:** bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Running it
 
+```shell
+yarn install --frozen-lockfile
+yarn start
+yarn test
+yarn build
+```
 
-Immutability
+**Node 10 or 12.** This is `react-scripts` 3, which is webpack 4, and on Node 17 or
+newer the build fails with `ERR_OSSL_EVP_UNSUPPORTED` because webpack 4 uses an MD4
+hash that OpenSSL 3 removed. The dependencies are deliberately pinned to their 2019
+versions, so either use an older Node or pass `NODE_OPTIONS=--openssl-legacy-provider`.
 
-Shallow copy
+## The game
+
+Two players alternate, `player1` is X and moves first, and the first line of three
+wins. A won line is highlighted, a full board with no line is a draw, and the board
+stops accepting moves once either happens.
+
+| File | Role |
+| --- | --- |
+| `src/App.js` | the board, the turn logic, and win and draw detection |
+| `src/immutability.js` | the examples below, as code |
+| `src/App.test.js` | the game rules |
+| `src/immutability.test.js` | the examples, asserted |
+
+### It did not used to be a game
+
+`selectCell` never recorded a move. Its body was an experiment that pushed the number
+`9` onto the players array, and the actual work was three comments:
+
+```js
+    // update state
+
+    // mark cell
+
+    // set current player the other
+```
+
+There was no cell state at all, so there was nothing for a move to be written to, and
+`Cell` rendered an empty `<div>` with nothing inside it and nothing to click. The
+README's first line was `TODO: Overview`.
+
+The board is nine `<button>` elements now, each labelled for screen readers and
+disabled when it is not a legal move, rather than `<div>`s with click handlers.
+
+### How the state updates work
+
+The move is the whole lesson in one line:
+
+```js
+const cells = state.cells.map((cell, index) => (index === cellId ? mark : cell))
+```
+
+`.map` returns a new array and leaves `state.cells` alone. Writing
+`state.cells[cellId] = mark` instead would be Attempt #1 below: React compares by
+identity, so the array would still be the same object and the board would not
+re-render.
+
+Every update uses the functional form of `setState` and builds a new object.
+`selectCell` returns `null` when the move is illegal, which is React's way of saying
+"no state change", rather than setting state to what it already was.
+
+## Immutability
+
+The examples below are in `src/immutability.js` and asserted in
+`src/immutability.test.js`, so `yarn test` checks that they still behave the way this
+page says they do.
+
+### Shallow copy
+
+A spread copies one level. Everything nested below that level is still the same object,
+so writing through the copy writes through to the original.
 
 ```javascript
 const state = {
@@ -48,9 +117,11 @@ newState1 is 111
 newState2 is 111
 ```
 
-TODO: Performance deep
+### Deep copy with lodash
 
-Deep copy (or clone) with lodash
+`_.cloneDeep` copies the whole tree, so nothing is shared. It is also the reason
+`lodash` is a dependency of this project: it was declared in `package.json` with its
+only use commented out in `App.js`, and it is used here.
 
 ```javascript
 const state = {
@@ -80,11 +151,10 @@ state: 1
 deepCloneOfState: 111111
 ```
 
-DOING:
+### Copying only as deep as you write
 
-Example of adding a hobby to the hobbies's array of player1
-
-Having the following object (state)...
+Three attempts at adding a hobby to `player1`, each going one level deeper than the
+last. Starting from this state:
 ```javascript
 const state = {
   players: {
