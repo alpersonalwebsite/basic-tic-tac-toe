@@ -1,17 +1,114 @@
 # Basic Tic-Tac-Toe
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/alpersonalwebsite/basic-tic-tac-toe.svg)](https://greenkeeper.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
-TODO: Overview
+A playable tic-tac-toe board, written so that every state update is an immutable one,
+with notes underneath on why the updates are written that way.
 
-**NOTE:** This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**NOTE:** bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Running it
 
+```shell
+yarn install --frozen-lockfile
+yarn start
+yarn test
+yarn build
+```
 
-Immutability
+**On a current Node, set one environment variable.** This is `react-scripts` 3, which is
+webpack 4, and webpack 4 uses an MD4 hash that OpenSSL 3 removed, so from Node 17 onwards
+a bare `yarn build` fails with `ERR_OSSL_EVP_UNSUPPORTED`. That is a build-tool problem,
+not a reason to run an end-of-life runtime:
 
-Shallow copy
+```shell
+NODE_OPTIONS=--openssl-legacy-provider yarn build
+```
+
+Tested, `Compiled successfully` on both **Node 20** and **Node 22** with that flag set.
+Node 10 also works without it, and is what the 2019 project targeted, but there is no
+need to install an unsupported runtime to build this.
+
+## The game
+
+Two players alternate, `player1` is X and moves first, and the first line of three
+wins. A won line is highlighted, a full board with no line is a draw, and the board
+stops accepting moves once either happens.
+
+| File | Role |
+| --- | --- |
+| `src/App.js` | the board, the turn logic, and win and draw detection |
+| `src/immutability.js` | the examples below, as code |
+| `src/App.test.js` | the game rules |
+| `src/immutability.test.js` | the examples, asserted |
+
+### It did not used to be a game
+
+`selectCell` never recorded a move. Its body was an experiment that pushed the number
+`9` onto the players array, and the actual work was three comments:
+
+```js
+    // update state
+
+    // mark cell
+
+    // set current player the other
+```
+
+There was no cell state at all, so there was nothing for a move to be written to, and
+`Cell` rendered an empty `<div>` with nothing inside it and nothing to click. The
+README's first line was `TODO: Overview`.
+
+The board is nine `<button>` elements now, each labelled for screen readers and
+disabled when it is not a legal move, rather than `<div>`s with click handlers.
+
+### How the state updates work
+
+The move is the whole lesson in one line:
+
+```js
+const cells = state.cells.map((cell, index) => (index === cellId ? mark : cell))
+```
+
+`.map` returns a new array and leaves `state.cells` alone.
+
+It is worth being precise about why writing `state.cells[cellId] = mark` instead is
+wrong, because the obvious reason is not the real one. Mutating in place and returning
+the same array **still re-renders**: `setState` schedules an update whenever its updater
+returns an object, and `Board` is a plain `Component`, so nothing is comparing references.
+Measured on exactly that shape: renders went from 1 to 2 and the cell showed its mark. The
+mutation appears to work.
+
+It is wrong because it edits state that has already been handed out, and because it stops
+working the moment something *does* compare references: a `PureComponent`, a `React.memo`
+child, a `shouldComponentUpdate`, or a memoised selector above it. That is a bug that
+shows up later, somewhere else, for no visible reason. Attempt #1 below is the same
+mistake in miniature.
+
+Every update uses the functional form of `setState` and builds a new object.
+`selectCell` returns `null` when the move is illegal, which is React's way of saying
+"no state change", rather than setting state to what it already was.
+
+## A note on lodash
+
+`lodash` is pinned at `^4.17.15` and the lockfile resolves **4.17.15**, which is covered by
+[GHSA-r5fr-rjxr-66jc](https://github.com/advisories/GHSA-r5fr-rjxr-66jc), a high-severity
+code-injection issue in `_.template` affecting everything up to and including 4.17.23. It
+is not upgraded here, for two reasons. This repository deliberately keeps its 2019
+dependency set, and the only lodash function it uses is `cloneDeep`, imported directly as
+`lodash/cloneDeep`; `_.template` is never called. If you lift this code anywhere real,
+take 4.18.0 or later.
+
+## Immutability
+
+The examples below are in `src/immutability.js` and asserted in
+`src/immutability.test.js`, so `yarn test` checks that they still behave the way this
+page says they do.
+
+### Shallow copy
+
+A spread copies one level. Everything nested below that level is still the same object,
+so writing through the copy writes through to the original.
 
 ```javascript
 const state = {
@@ -48,9 +145,11 @@ newState1 is 111
 newState2 is 111
 ```
 
-TODO: Performance deep
+### Deep copy with lodash
 
-Deep copy (or clone) with lodash
+`_.cloneDeep` copies the whole tree, so nothing is shared. It is also the reason
+`lodash` is a dependency of this project: it was declared in `package.json` with its
+only use commented out in `App.js`, and it is used here.
 
 ```javascript
 const state = {
@@ -80,11 +179,10 @@ state: 1
 deepCloneOfState: 111111
 ```
 
-DOING:
+### Copying only as deep as you write
 
-Example of adding a hobby to the hobbies's array of player1
-
-Having the following object (state)...
+Three attempts at adding a hobby to `player1`, each going one level deeper than the
+last. Starting from this state:
 ```javascript
 const state = {
   players: {

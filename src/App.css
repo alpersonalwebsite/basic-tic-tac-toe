@@ -1,22 +1,66 @@
 .App {
   text-align: center;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.board {
+  display: inline-block;
+  margin: 0 auto;
 }
 
 .row {
-  
+  display: flex;
 }
 
-.row * {
-  padding: 40px;
+/* The original drew the grid lines with :nth-child rules on .row and its children,
+   which meant the borders depended on the elements being in a particular order. Each
+   cell now owns the two edges it needs, so the grid holds however the markup moves. */
+.cell {
+  width: 90px;
+  height: 90px;
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 1;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: #222;
+}
+
+.row:not(:last-child) .cell {
+  border-bottom: 1px solid #333;
+}
+
+.cell:not(:last-child) {
+  border-right: 1px solid #333;
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.cell-winning {
+  background: #d8f5d8;
+}
+
+.controls {
+  margin-top: 20px;
+}
+
+.controls button {
+  font-size: 16px;
+  padding: 6px 14px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.controls button:disabled {
+  cursor: default;
+}
+
+.status {
   display: inline-block;
-}
-
-.row:nth-child(even) * {
-  border-top: 1px solid black;
-  border-bottom: 1px solid black;
-}
-
-.row *:nth-child(even) {
-  border-left: 1px solid black;
-  border-right: 1px solid black;
+  margin-left: 8px;
+  min-width: 14em;
+  text-align: left;
 }
