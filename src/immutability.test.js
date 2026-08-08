@@ -17,6 +17,9 @@ it('a spread copies one level, so nested writes are shared', () => {
   expect(r.newState1).toBe(111)
   expect(r.newState2).toBe(111)
   expect(r.sharesPlayersObject).toBe(true)
+
+  // Object.assign is a shallow copy for the same reason a spread is.
+  expect(r.objectAssignAlsoShares).toBe(true)
 })
 
 it('cloneDeep shares nothing', () => {

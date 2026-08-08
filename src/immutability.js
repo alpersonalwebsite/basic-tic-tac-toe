@@ -2,8 +2,8 @@
 //
 // The README walks through copying nested state and shows the console output for each
 // attempt. Printed output in a document is a claim, and claims drift. Every example is
-// a function here, `yarn lesson` runs them all and prints exactly what the README says
-// it prints, and immutability.test.js asserts the behaviour each one is demonstrating.
+// a function here, and immutability.test.js asserts the behaviour each one is
+// demonstrating, so `yarn test` checks that the README still tells the truth.
 //
 // This is also why lodash is a dependency: `_.cloneDeep` is the third example. It was
 // declared in package.json with its only use commented out in App.js.
@@ -43,14 +43,18 @@ export const shallowCopyIsOneLevelDeep = () => {
   const newState1 = { ...state }
   newState1.players.player1 = 11
 
+  // Written through newState2, so this shows Object.assign sharing `players` too. The
+  // README's original snippet assigned to newState1 twice here, which still ends with
+  // every name reading 111 but never actually exercises the Object.assign copy.
   const newState2 = Object.assign({}, state)
-  newState1.players.player1 = 111
+  newState2.players.player1 = 111
 
   return {
     state: state.players.player1,
     newState1: newState1.players.player1,
     newState2: newState2.players.player1,
-    sharesPlayersObject: state.players === newState1.players
+    sharesPlayersObject: state.players === newState1.players,
+    objectAssignAlsoShares: state.players === newState2.players
   }
 }
 
