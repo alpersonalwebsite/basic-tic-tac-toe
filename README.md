@@ -16,10 +16,18 @@ yarn test
 yarn build
 ```
 
-**Node 10 or 12.** This is `react-scripts` 3, which is webpack 4, and on Node 17 or
-newer the build fails with `ERR_OSSL_EVP_UNSUPPORTED` because webpack 4 uses an MD4
-hash that OpenSSL 3 removed. The dependencies are deliberately pinned to their 2019
-versions, so either use an older Node or pass `NODE_OPTIONS=--openssl-legacy-provider`.
+**On a current Node, set one environment variable.** This is `react-scripts` 3, which is
+webpack 4, and webpack 4 uses an MD4 hash that OpenSSL 3 removed, so from Node 17 onwards
+a bare `yarn build` fails with `ERR_OSSL_EVP_UNSUPPORTED`. That is a build-tool problem,
+not a reason to run an end-of-life runtime:
+
+```shell
+NODE_OPTIONS=--openssl-legacy-provider yarn build
+```
+
+Tested, `Compiled successfully` on both **Node 20** and **Node 22** with that flag set.
+Node 10 also works without it, and is what the 2019 project targeted, but there is no
+need to install an unsupported runtime to build this.
 
 ## The game
 
@@ -62,14 +70,34 @@ The move is the whole lesson in one line:
 const cells = state.cells.map((cell, index) => (index === cellId ? mark : cell))
 ```
 
-`.map` returns a new array and leaves `state.cells` alone. Writing
-`state.cells[cellId] = mark` instead would be Attempt #1 below: React compares by
-identity, so the array would still be the same object and the board would not
-re-render.
+`.map` returns a new array and leaves `state.cells` alone.
+
+It is worth being precise about why writing `state.cells[cellId] = mark` instead is
+wrong, because the obvious reason is not the real one. Mutating in place and returning
+the same array **still re-renders**: `setState` schedules an update whenever its updater
+returns an object, and `Board` is a plain `Component`, so nothing is comparing references.
+Measured on exactly that shape: renders went from 1 to 2 and the cell showed its mark. The
+mutation appears to work.
+
+It is wrong because it edits state that has already been handed out, and because it stops
+working the moment something *does* compare references: a `PureComponent`, a `React.memo`
+child, a `shouldComponentUpdate`, or a memoised selector above it. That is a bug that
+shows up later, somewhere else, for no visible reason. Attempt #1 below is the same
+mistake in miniature.
 
 Every update uses the functional form of `setState` and builds a new object.
 `selectCell` returns `null` when the move is illegal, which is React's way of saying
 "no state change", rather than setting state to what it already was.
+
+## A note on lodash
+
+`lodash` is pinned at `^4.17.15` and the lockfile resolves **4.17.15**, which is covered by
+[GHSA-r5fr-rjxr-66jc](https://github.com/advisories/GHSA-r5fr-rjxr-66jc), a high-severity
+code-injection issue in `_.template` affecting everything up to and including 4.17.23. It
+is not upgraded here, for two reasons. This repository deliberately keeps its 2019
+dependency set, and the only lodash function it uses is `cloneDeep`, imported directly as
+`lodash/cloneDeep`; `_.template` is never called. If you lift this code anywhere real,
+take 4.18.0 or later.
 
 ## Immutability
 
