@@ -64,9 +64,19 @@ class Board extends Component {
       const mark = state.players[state.currentPlayer]
 
       // .map returns a new array; state.cells is untouched. The README's Attempt #3 is
-      // the same idea: copy the level you are about to write to. Writing
-      // state.cells[cellId] = mark here would be Attempt #1, and React would not see a
-      // change because the array identity would not have moved.
+      // the same idea: copy the level you are about to write to.
+      //
+      // Being precise about why the alternative is wrong, because the obvious reason is
+      // not the real one. Writing state.cells[cellId] = mark and returning the same
+      // array still re-renders: setState schedules an update whenever its updater
+      // returns an object, and Board is a plain Component, so nothing compares
+      // references. Measured on exactly this shape: renders went 1 to 2 and the cell
+      // showed its mark. The mutation appears to work.
+      //
+      // It is wrong because it edits state that has already been handed out, and it
+      // stops working the moment anything does compare references: a PureComponent, a
+      // React.memo child, shouldComponentUpdate, or any memoised selector above it.
+      // That is a bug that arrives later, in a different file, for no visible reason.
       const cells = state.cells.map((cell, index) => (index === cellId ? mark : cell))
 
       const winningLine = findWinningLine(cells)
